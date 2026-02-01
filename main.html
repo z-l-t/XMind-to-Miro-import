@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XMind to Miro Importer - Main</title>
+</head>
+<body>
+    <script src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+    
+    <script>
+        miro.board.ui.on('icon:click', async () => {
+            await miro.board.ui.openPanel({
+                url: 'https://storage.yandexcloud.net/xmind2miro/panel.html?v=1'
+            });
+        });
+    </script>
+</body>
+</html>

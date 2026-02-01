@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XMind to Miro Importer</title>
+    <link rel="stylesheet" href="https://unpkg.com/mirotone@^5/dist/styles.css">
+    <style>
+        :root {
+            --color-primary: var(--miro-color-accent-primary, #1a9b8e);
+            --color-primary-hover: var(--miro-color-accent-primary-hover, #138578);
+            --color-bg: var(--miro-color-background-default, #f5f5f5);
+            --color-surface: var(--miro-color-surface-default, #ffffff);
+            --color-text: var(--miro-color-text-primary, #1f2937);
+            --color-text-secondary: var(--miro-color-text-secondary, #6b7280);
+            --color-border: var(--miro-color-border-default, #e5e7eb);
+            --color-error: var(--miro-color-error, #dc2626);
+            --color-success: var(--miro-color-success, #10b981);
+            --spacing-xs: 8px;
+            --spacing-sm: 12px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--miro-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+            background-color: var(--miro-color-background-default, var(--color-bg));
+            color: var(--miro-color-text-primary, var(--color-text));
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 100%;
+        }
+
+        header {
+            background-color: var(--color-surface);
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .subtitle {
+            margin: var(--spacing-xs) 0 0 0;
+            font-size: 12px;
+            color: var(--color-text-secondary);
+        }
+
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--spacing-md);
+        }
+
+        .section {
+            background-color: var(--color-surface);
+            border-radius: 8px;
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            border: 1px solid var(--color-border);
+        }
+
+        .section-title {
+            margin: 0 0 var(--spacing-sm) 0;
+            color: var(--color-text);
+        }
+
+        .upload-area {
+            border: 1px dashed var(--color-border);
+            border-radius: 8px;
+            padding: var(--spacing-lg);
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+            background-color: var(--color-surface);
+        }
+
+        .upload-area:hover {
+            border-color: var(--miro-color-border-hover, var(--indigo400, #adb1bd));
+            background-color: var(--indigoAlpha4, rgba(5, 0, 56, 0.04));
+        }
+
+        .upload-area.drag-over {
+            border-color: var(--blue700, #3859ff);
+            background-color: var(--blue100, #f2f4fc);
+        }
+
+        .upload-icon {
+            font-size: 28px;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .upload-text {
+            margin: 0;
+            font-size: 13px;
+            color: var(--color-text-secondary);
+        }
+
+        .upload-hint {
+            margin: var(--spacing-xs) 0 0 0;
+            font-size: 11px;
+            color: var(--color-text-secondary);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-md);
+        }
+
+        label {
+            display: block;
+            margin-bottom: var(--spacing-xs);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--color-text);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: inherit;
+            color: var(--color-text);
+            background-color: var(--color-surface);
+            transition: border-color 0.2s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(26, 155, 142, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            column-gap: var(--space-small);
+            row-gap: var(--space-small);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .stat-box {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: var(--spacing-sm);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--miro-color-text-primary, var(--color-text));
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--color-text-secondary);
+            margin-top: var(--spacing-xs);
+        }
+
+        .message {
+            padding: var(--spacing-sm);
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: var(--spacing-md);
+            display: none;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .message.error {
+            background-color: rgba(220, 38, 38, 0.1);
+            color: var(--color-error);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+        }
+
+        .message.success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--color-success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .message.info {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: var(--miro-color-info, #1d4ed8);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: var(--color-border);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--blue700, #3859ff);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .button-group .button {
+            margin: 0;
+        }
+
+        .tree-preview {
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: var(--color-surface);
+            border-radius: 8px;
+            padding: var(--spacing-sm);
+            font-size: 12px;
+            border: 1px solid var(--color-border);
+            font-family: 'Courier New', monospace;
+            line-height: 1.4;
+        }
+
+        .tree-item {
+            margin-left: 1em;
+            color: var(--color-text-secondary);
+        }
+
+        .tree-text {
+            color: var(--color-text);
+            font-weight: 500;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--color-border);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container miro-app">
+        <header>
+            <h1 class="miro-h1">🧠 XMind to Miro Importer</h1>
+            <p class="subtitle miro-text miro-text--small">Convert XMind mind maps to Miro mind map nodes</p>
+        </header>
+
+        <main>
+            <!-- Messages -->
+            <div id="messageError" class="message error miro-text miro-text--small"></div>
+            <div id="messageSuccess" class="message success miro-text miro-text--small"></div>
+            <div id="messageInfo" class="message info miro-text miro-text--small"></div>
+
+            <!-- File Upload Section -->
+            <div class="section miro-card">
+                <h3 class="section-title miro-h3">📁 Step 1: Upload XMind File</h3>
+                <div id="uploadArea" class="upload-area">
+                    <div class="upload-icon">📦</div>
+                    <p class="upload-text miro-text">Drag and drop your .xmind file here</p>
+                    <p class="upload-hint miro-text miro-text--small">or click to select</p>
+                </div>
+                <input type="file" id="fileInput" accept=".xmind" />
+            </div>
+
+            <!-- Preview Section -->
+            <div class="section miro-card" id="previewSection" style="display: none;">
+                <h3 class="section-title miro-h3">👁️ Step 2: Preview Structure</h3>
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="stat-value" id="totalNodes">0</div>
+                        <div class="stat-label miro-text miro-text--small">Total Nodes</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="maxDepth">0</div>
+                        <div class="stat-label miro-text miro-text--small">Max Depth</div>
+                    </div>
+                </div>
+                <div id="treePreview" class="tree-preview miro-text miro-text--small"></div>
+            </div>
+
+            <!-- Import Section -->
+            <div class="section miro-card" id="importSection" style="display: none;">
+                <h3 class="section-title miro-h3">🚀 Step 3: Import to Miro</h3>
+                <div id="progressBar" class="progress-bar" style="display: none;">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="button-group">
+                    <button id="importBtn" class="button button-primary button-small">Import to Miro</button>
+                    <button id="cancelBtn" class="button button-tertiary button-small" style="display: none;">Cancel</button>
+                    <button id="resetBtn" class="button button-secondary button-small">Reset</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://miro.com/app/static/sdk/v2/miro.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <script>
+        const MAX_FILE_SIZE_MB = 20;
+        const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+        const state = {
+            file: null,
+            xmindData: null,
+            nodes: [],
+            nodeById: {},
+            rootId: null,
+            totalNodes: 0,
+            maxDepth: 0,
+            cancelRequested: false
+        };
+
+        // Elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewSection = document.getElementById('previewSection');
+        const importSection = document.getElementById('importSection');
+        const importBtn = document.getElementById('importBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const totalNodesSpan = document.getElementById('totalNodes');
+        const maxDepthSpan = document.getElementById('maxDepth');
+        const treePreviewDiv = document.getElementById('treePreview');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const miroReady = (async () => {
+            if (!miro?.board?.getInfo) {
+                throw new Error('Miro SDK is not available in this context');
+            }
+            await miro.board.getInfo();
+        })();
+
+        // Message functions
+        function showMessage(id, text, autoHide = true) {
+            const el = document.getElementById(id);
+            el.textContent = text;
+            el.classList.add('show');
+            if (autoHide && autoHide > 0) {
+                setTimeout(() => el.classList.remove('show'), autoHide);
+            }
+        }
+
+        function hideMessages() {
+            document.querySelectorAll('.message').forEach(m => m.classList.remove('show'));
+        }
+
+        // File upload handlers
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files);
+            }
+        });
+
+        async function handleFileSelect(fileInputValue) {
+            hideMessages();
+
+            const file = fileInputValue instanceof File ? fileInputValue : fileInputValue[0];
+            if (!file) {
+                return;
+            }
+
+            if (!file.name.endsWith('.xmind')) {
+                showMessage('messageError', '❌ Please select a .xmind file', 3000);
+                return;
+            }
+
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+                showMessage(
+                    'messageError',
+                    `❌ File is too large. Max size is ${MAX_FILE_SIZE_MB} MB.`,
+                    5000
+                );
+                return;
+            }
+
+            state.file = file;
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const zip = await JSZip.loadAsync(arrayBuffer);
+                const contentFile = zip.file('content.json');
+                if (!contentFile) {
+                    throw new Error('content.json not found in XMind file');
+                }
+
+                const contentJson = await contentFile.async('text');
+                state.xmindData = JSON.parse(contentJson);
+                validateXMindStructure(state.xmindData);
+                parseXMindStructure();
+                previewSection.style.display = 'block';
+                importSection.style.display = 'block';
+
+                showMessage('messageSuccess', '✅ XMind file loaded successfully', 3000);
+            } catch (error) {
+                showMessage('messageError', `❌ Error loading file: ${error.message}`, 5000);
+                console.error(error);
+                clearPreview();
+            }
+        }
+
+        function validateXMindStructure(data) {
+            if (!Array.isArray(data) || data.length === 0) {
+                throw new Error('Invalid XMind file: no sheets found');
+            }
+
+            const sheet = data[0];
+            if (!sheet || !sheet.rootTopic) {
+                throw new Error('Invalid XMind file: root topic is missing');
+            }
+
+            const root = sheet.rootTopic;
+            if (!root.title || typeof root.title !== 'string') {
+                throw new Error('Invalid XMind file: root topic has no title');
+            }
+
+            validateTopicRecursive(root, new Set());
+        }
+
+        function validateTopicRecursive(topic, seenIds) {
+            if (!topic || typeof topic !== 'object') {
+                throw new Error('Invalid XMind file: topic is not an object');
+            }
+
+            if (topic.id) {
+                if (seenIds.has(topic.id)) {
+                    throw new Error('Invalid XMind file: duplicate topic id detected');
+                }
+                seenIds.add(topic.id);
+            }
+
+            if (topic.title && typeof topic.title !== 'string') {
+                throw new Error('Invalid XMind file: topic title is not a string');
+            }
+
+            if (topic.children && topic.children.attached) {
+                if (!Array.isArray(topic.children.attached)) {
+                    throw new Error('Invalid XMind file: attached children must be an array');
+                }
+                for (const child of topic.children.attached) {
+                    validateTopicRecursive(child, seenIds);
+                }
+            }
+        }
+
+        function parseXMindStructure() {
+            state.nodes = [];
+            state.nodeById = {};
+            state.rootId = null;
+            state.totalNodes = 0;
+            state.maxDepth = 0;
+
+            const sheet = state.xmindData[0];
+            if (!sheet || !sheet.rootTopic) {
+                throw new Error('No root topic found');
+            }
+
+            state.rootId = parseTopicRecursive(sheet.rootTopic, null, 0);
+            totalNodesSpan.textContent = state.totalNodes;
+            maxDepthSpan.textContent = state.maxDepth;
+            renderTreePreview();
+        }
+
+        function parseTopicRecursive(topic, parentId, depth) {
+            if (!topic || !topic.title) {
+                return null;
+            }
+
+            state.maxDepth = Math.max(state.maxDepth, depth);
+            state.totalNodes += 1;
+
+            const nodeId = topic.id || `node-${state.totalNodes}`;
+            const nodeData = {
+                id: nodeId,
+                title: topic.title,
+                parentId: parentId,
+                depth: depth,
+                href: topic.href || null,
+                children: []
+            };
+
+            state.nodes.push(nodeData);
+            state.nodeById[nodeData.id] = nodeData;
+
+            if (topic.children && topic.children.attached && Array.isArray(topic.children.attached)) {
+                for (const child of topic.children.attached) {
+                    const childId = parseTopicRecursive(child, nodeData.id, depth + 1);
+                    if (childId) {
+                        nodeData.children.push(childId);
+                    }
+                }
+            }
+
+            return nodeData.id;
+        }
+
+        function renderTreePreview() {
+            treePreviewDiv.innerHTML = '';
+            const rootNode = state.rootId ? state.nodeById[state.rootId] : null;
+            if (rootNode) {
+                renderNodePreview(rootNode, 0);
+            }
+        }
+
+        function renderNodePreview(node, level) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'tree-item';
+            itemDiv.style.marginLeft = `${level * 12}px`;
+
+            const text = document.createElement('span');
+            text.className = 'tree-text';
+            text.textContent = `• ${node.title}`;
+
+            itemDiv.appendChild(text);
+            treePreviewDiv.appendChild(itemDiv);
+
+            for (const childId of node.children) {
+                const childNode = state.nodeById[childId];
+                if (childNode) {
+                    renderNodePreview(childNode, level + 1);
+                }
+            }
+        }
+
+        importBtn.addEventListener('click', async () => {
+            hideMessages();
+            showMessage('messageInfo', 'Starting import...', false);
+            console.log('[xmind-import] Import button clicked');
+            state.cancelRequested = false;
+            cancelBtn.style.display = 'inline-flex';
+
+            try {
+                await miroReady;
+            } catch (error) {
+                showMessage('messageError', `❌ Miro SDK is not ready: ${error.message}`, 5000);
+                console.error('[xmind-import] SDK init failed', error);
+                cancelBtn.style.display = 'none';
+                return;
+            }
+
+            const createMindmapNodeTarget = miro?.board?.experimental;
+            const createMindmapNodeFn =
+                (createMindmapNodeTarget && createMindmapNodeTarget.createMindmapNode)
+                    ? createMindmapNodeTarget.createMindmapNode.bind(createMindmapNodeTarget)
+                    : null;
+
+            if (!createMindmapNodeFn) {
+                showMessage(
+                    'messageError',
+                    '❌ Mind map API is not available. This feature requires experimental Mindmap Node.',
+                    5000
+                );
+                console.error('[xmind-import] createMindmapNode is not available');
+                cancelBtn.style.display = 'none';
+                return;
+            }
+
+            importBtn.disabled = true;
+            progressBar.style.display = 'block';
+
+            try {
+                const rootNode = state.rootId ? state.nodeById[state.rootId] : null;
+                if (!rootNode) {
+                    throw new Error('No root node found');
+                }
+
+                showMessage('messageInfo', `Creating root node: ${rootNode.title}...`, false);
+
+                const createdNodes = {};
+                await createMindmapNode(rootNode, null, createdNodes, createMindmapNodeFn);
+
+                showMessage('messageSuccess', `✅ Successfully imported ${state.totalNodes} nodes to Miro!`, 5000);
+
+                setTimeout(() => {
+                    resetForm();
+                }, 2000);
+            } catch (error) {
+                if (state.cancelRequested) {
+                    showMessage('messageInfo', 'Import canceled.', 3000);
+                } else {
+                    showMessage('messageError', `❌ Import failed: ${error.message}`, 5000);
+                }
+                console.error(error);
+            } finally {
+                importBtn.disabled = false;
+                progressBar.style.display = 'none';
+                cancelBtn.style.display = 'none';
+            }
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            state.cancelRequested = true;
+            showMessage('messageInfo', 'Canceling import...', false);
+        });
+
+        async function createMindmapNode(node, parentHandle, createdNodes, createMindmapNodeFn) {
+            if (state.cancelRequested) {
+                throw new Error('Import canceled by user');
+            }
+            try {
+                const createdNode = await createMindmapNodeFn({
+                    nodeView: {
+                        type: 'text',
+                        content: node.title
+                    }
+                });
+                createdNodes[node.id] = createdNode.id;
+
+                if (parentHandle && typeof parentHandle.add === 'function') {
+                    await parentHandle.add(createdNode);
+                }
+
+                const progress = (Object.keys(createdNodes).length / state.totalNodes) * 100;
+                progressFill.style.width = `${progress}%`;
+
+                for (const childId of node.children) {
+                    const childNode = state.nodeById[childId];
+                    if (childNode) {
+                        await createMindmapNode(childNode, createdNode, createdNodes, createMindmapNodeFn);
+                    }
+                }
+            } catch (error) {
+                console.error(`Failed to create node: ${node.title}`, error);
+                throw error;
+            }
+        }
+
+        resetBtn.addEventListener('click', resetForm);
+
+        function resetForm() {
+            state.file = null;
+            state.xmindData = null;
+            state.nodes = [];
+            state.nodeById = {};
+            state.rootId = null;
+            state.cancelRequested = false;
+            fileInput.value = '';
+            previewSection.style.display = 'none';
+            importSection.style.display = 'none';
+            uploadArea.classList.remove('drag-over');
+            hideMessages();
+            clearPreview();
+        }
+
+        function clearPreview() {
+            treePreviewDiv.innerHTML = '';
+            totalNodesSpan.textContent = '0';
+            maxDepthSpan.textContent = '0';
+        }
+    </script>
+</body>
+</html>
