@@ -4,7 +4,7 @@ sdkUri: https://x-mind-to-miro-import.vercel.app/main.html?v=1
 boardPicker:
   allowedDomains:
     - localhost
-    - storage.yandexcloud.net
+    - x-mind-to-miro-import.vercel.app
 redirectUris: []
 redirectUriForSdk: ''
 scopes:
